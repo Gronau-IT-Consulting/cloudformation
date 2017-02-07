@@ -1,5 +1,4 @@
-# cloudformation
-Cloudformation for Kickstarting &amp; Bootstrapping AWS Stacks
+# Cloudformation Templates for Kickstarting &amp; Bootstrapping AWS Stacks
 
 ### cloudformation_es5node.yaml 
 

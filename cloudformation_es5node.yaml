@@ -1,9 +1,12 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Learning cloudformation with VPN example
+Description: Basic template to create one elasticsearch 5 node
 Parameters:
+  KeyName:
+    Description: Key Pair name
+    Type: AWS::EC2::KeyPair::KeyName
   MyOwnIP:
-    Description: IP from which to access your server
+    Description: IP from which to access your server via ssh
     Type: String
     MinLength: 7
     MaxLength: 15
@@ -21,7 +24,7 @@ Mappings:
     eu-central-1:
       AMI: ami-af0fc0c0
 Resources:
-#             Step 1: Create the VPC
+# Network: Create the VPC and a Subnet - which we don't need here
   minielkVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -64,7 +67,7 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
         Ref: minielkInternetGateway
-#             Step 2: Create a Security Group
+# Create a Security Group: 9200 (elasticsearch) for all - not for production! And ssh for me - which I shouldn't need
   miniELKsshsg:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -90,8 +93,7 @@ Resources:
       VpcId:
         Ref: minielkVPC
 
-#             Step 3: Launch an Instance into Your VPC
-### Step 3: Our ES instance
+### Our ES instance
   minielkESEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -103,7 +105,7 @@ Resources:
         GroupSet:
         - !Ref miniELKsshsg
         SubnetId: !Ref minielkSubnet
-      KeyName: "getting-started-vpc"
+      KeyName: !Ref KeyName
       UserData:
         "Fn::Base64": 
            !Sub |
@@ -192,12 +194,13 @@ Resources:
                  #!/bin/bash -xe  
                  LOCALIP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
                  curl -XPUT "$LOCALIP:9200/welcome/message/1" -d '{"success": "Welcome to elasticsearch 5."}'
+### Output to make it easier to check and connect
 Outputs:
   SshToYourBox:
-    Description: how to ssh to your new instance
-    Value: !Sub 'ssh -i $HOME/.ssh/getting-started-vpc.pem ec2-user@${minielkESEC2Instance.PublicIp}'
+    Description: how to ssh to your new instance - assuming the key is in $HOME/.ssh
+    Value: !Sub 'ssh -i $HOME/.ssh/${KeyName} ec2-user@${minielkESEC2Instance.PublicIp}'
   EnjoyES:
-    Description: If everything worked, enjoy your welcome document
+    Description: If everything worked, enjoy your welcome document. 
     Value: !Sub 'http://${minielkESEC2Instance.PublicIp}:9200/welcome/message/1'
 
 
