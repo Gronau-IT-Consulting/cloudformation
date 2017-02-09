@@ -193,7 +193,7 @@ Resources:
                  sed -i "s/#MAX_OPEN_FILES=65536/MAX_OPEN_FILES=65536/" /etc/sysconfig/elasticsearch
                  sed -i "s/#MAX_LOCKED_MEMORY=unlimited/MAX_LOCKED_MEMORY=unlimited/" /etc/sysconfig/elasticsearch
                  sed -i "s/#MAX_MAP_COUNT=262144/MAX_MAP_COUNT=262144/" /etc/sysconfig/elasticsearch
-                 sed -i "s/#discovery.zen.ping.unicast.hosts:.*/discovery:\n  zen.hosts_provider:\n    ec2\ncloud.aws.region: eu-central-1/" /etc/elasticsearch/elasticsearch.yml
+                 sed -i "s/#discovery.zen.ping.unicast.hosts:.*/discovery:\n  zen.hosts_provider:\n    ec2\ncloud.aws.region: ${AWS::Region}/" /etc/elasticsearch/elasticsearch.yml
                  /root/configure_elasticsearch_memip.sh
         run_elasticsearch:
           commands:
