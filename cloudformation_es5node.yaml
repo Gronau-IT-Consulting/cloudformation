@@ -1,12 +1,9 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Basic template to create one elasticsearch 5 node
+Description: Install one isolated elasticsearch 5 node in its own VPN 
 Parameters:
-  KeyName:
-    Description: Key Pair name
-    Type: AWS::EC2::KeyPair::KeyName
   MyOwnIP:
-    Description: IP from which to access your server via ssh
+    Description: IP from which to access your server
     Type: String
     MinLength: 7
     MaxLength: 15
@@ -19,12 +16,15 @@ Parameters:
     - t2.micro
     - t2.small
     - t2.medium
+  KeyName:
+    Description: Key Pair name
+    Type: AWS::EC2::KeyPair::KeyName
 Mappings:
   RegionMap:
     eu-central-1:
       AMI: ami-af0fc0c0
 Resources:
-# Network: Create the VPC and a Subnet - which we don't need here
+#  Create the VPC and Subnet - not sure if we need the subnet
   minielkVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -38,6 +38,7 @@ Resources:
         Ref: minielkVPC
       CidrBlock: 10.0.0.0/24
       MapPublicIpOnLaunch: 'true' 
+# To connect our VPC to the internet
   minielkInternetGateway:
     Type: "AWS::EC2::InternetGateway"
   minielkAttachGateway:
@@ -67,20 +68,11 @@ Resources:
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId:
         Ref: minielkInternetGateway
-# Create a Security Group: 9200 (elasticsearch) for all - not for production! And ssh for me - which I shouldn't need
+#  Create a Security Group. Not for production!
   miniELKsshsg:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow ports 22 for me, 9200 for all"
-      SecurityGroupEgress:
-      - CidrIp: 0.0.0.0/0
-        IpProtocol: "tcp" 
-        FromPort: 80
-        ToPort: 80
-      - CidrIp: 0.0.0.0/0
-        IpProtocol: "tcp" 
-        FromPort: 443
-        ToPort: 443
       SecurityGroupIngress:
       - CidrIp: !Sub ${MyOwnIP}/32
         IpProtocol: "tcp" 
@@ -92,13 +84,15 @@ Resources:
         ToPort: 9200
       VpcId:
         Ref: minielkVPC
-
 ### Our ES instance
   minielkESEC2Instance:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
       InstanceType: !Ref InstanceType
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
       NetworkInterfaces:
       - AssociatePublicIpAddress: 'true'
         DeviceIndex: 0
@@ -140,9 +134,6 @@ Resources:
               mode: '000400'
               owner: root
               group: root
-            /etc/stackname:
-              content: !Sub |
-                  ${AWS::StackName}
             /root/memorysizes.txt:
               content: | 
                 t2.micro,esmemory,500m 
@@ -182,7 +173,6 @@ Resources:
               command: |
                 #!/bin/bash -xe  
                 echo y | /usr/share/elasticsearch/bin/elasticsearch-plugin install discovery-ec2
-                echo y | /usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3
           services:
             sysvinit:
               elasticsearch:
@@ -195,13 +185,12 @@ Resources:
                  #!/bin/bash -xe  
                  LOCALIP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
                  curl -XPUT "$LOCALIP:9200/welcome/message/1" -d '{"success": "Welcome to elasticsearch 5."}'
-### Output to make it easier to check and connect
 Outputs:
   SshToYourBox:
     Description: how to ssh to your new instance - assuming the key is in $HOME/.ssh
     Value: !Sub 'ssh -i $HOME/.ssh/${KeyName} ec2-user@${minielkESEC2Instance.PublicIp}'
   EnjoyES:
-    Description: If everything worked, enjoy your welcome document. 
+    Description: If everything worked, enjoy your welcome document
     Value: !Sub 'http://${minielkESEC2Instance.PublicIp}:9200/welcome/message/1'
 
 
