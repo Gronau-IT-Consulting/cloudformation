@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Basic template to create one elasticsearch 5 node
+Description: Basic template to create a cluster of 3 elasticsearch 5 nodes
 Parameters:
   KeyName:
     Description: Key Pair name
@@ -16,7 +16,6 @@ Parameters:
     Description: instance type of virtual server
     Type: String
     AllowedValues:
-    - t2.micro
     - t2.small
     - t2.medium
 Mappings:
@@ -72,15 +71,6 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Allow ports 22 for me, 9200 for all"
-      SecurityGroupEgress:
-      - CidrIp: 0.0.0.0/0
-        IpProtocol: "tcp" 
-        FromPort: 80
-        ToPort: 80
-      - CidrIp: 0.0.0.0/0
-        IpProtocol: "tcp" 
-        FromPort: 443
-        ToPort: 443
       SecurityGroupIngress:
       - CidrIp: !Sub ${MyOwnIP}/32
         IpProtocol: "tcp" 
@@ -90,27 +80,58 @@ Resources:
         IpProtocol: "tcp" 
         FromPort: 9200
         ToPort: 9200
+      - CidrIp: 0.0.0.0/0
+        IpProtocol: "tcp" 
+        FromPort: 9300
+        ToPort: 9300
       VpcId:
         Ref: minielkVPC
-
-### Our ES instance
-  minielkESEC2Instance:
-    Type: AWS::EC2::Instance
+### IAM Identities: Role and Policy
+  DiscoverInstancesRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "ec2.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - 
+          PolicyName: "root"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: "Allow"
+                Action: "ec2:DescribeInstances"
+                Resource: "*"
+  EsIamInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Roles:
+        - ElasticsearchDiscovery
+### Our ES cluster
+  ESLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
+      AssociatePublicIpAddress: true
       ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', AMI]
       InstanceType: !Ref InstanceType
-      NetworkInterfaces:
-      - AssociatePublicIpAddress: 'true'
-        DeviceIndex: 0
-        GroupSet:
+      IamInstanceProfile: !Ref EsIamInstanceProfile
+      SecurityGroups: 
         - !Ref miniELKsshsg
-        SubnetId: !Ref minielkSubnet
       KeyName: !Ref KeyName
       UserData:
         "Fn::Base64": 
            !Sub |
              #!/bin/bash -xe
-             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource minielkESEC2Instance --configsets elasticsearch_install --region ${AWS::Region}
+             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ESLaunchConfiguration --configsets elasticsearch_install --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -140,9 +161,6 @@ Resources:
               mode: '000400'
               owner: root
               group: root
-            /etc/stackname:
-              content: !Sub |
-                  ${AWS::StackName}
             /root/memorysizes.txt:
               content: | 
                 t2.micro,esmemory,500m 
@@ -175,6 +193,7 @@ Resources:
                  sed -i "s/#MAX_OPEN_FILES=65536/MAX_OPEN_FILES=65536/" /etc/sysconfig/elasticsearch
                  sed -i "s/#MAX_LOCKED_MEMORY=unlimited/MAX_LOCKED_MEMORY=unlimited/" /etc/sysconfig/elasticsearch
                  sed -i "s/#MAX_MAP_COUNT=262144/MAX_MAP_COUNT=262144/" /etc/sysconfig/elasticsearch
+                 sed -i "s/#discovery.zen.ping.unicast.hosts:.*/discovery:\n  zen.hosts_provider:\n    ec2\ncloud.aws.region: eu-central-1/" /etc/elasticsearch/elasticsearch.yml
                  /root/configure_elasticsearch_memip.sh
         run_elasticsearch:
           commands:
@@ -182,7 +201,6 @@ Resources:
               command: |
                 #!/bin/bash -xe  
                 echo y | /usr/share/elasticsearch/bin/elasticsearch-plugin install discovery-ec2
-                echo y | /usr/share/elasticsearch/bin/elasticsearch-plugin install repository-s3
           services:
             sysvinit:
               elasticsearch:
@@ -195,14 +213,21 @@ Resources:
                  #!/bin/bash -xe  
                  LOCALIP=$(curl http://169.254.169.254/latest/meta-data/local-ipv4)
                  curl -XPUT "$LOCALIP:9200/welcome/message/1" -d '{"success": "Welcome to elasticsearch 5."}'
-### Output to make it easier to check and connect
-Outputs:
-  SshToYourBox:
-    Description: how to ssh to your new instance - assuming the key is in $HOME/.ssh
-    Value: !Sub 'ssh -i $HOME/.ssh/${KeyName} ec2-user@${minielkESEC2Instance.PublicIp}'
-  EnjoyES:
-    Description: If everything worked, enjoy your welcome document. 
-    Value: !Sub 'http://${minielkESEC2Instance.PublicIp}:9200/welcome/message/1'
+  ElasticsearchCluster:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      MinSize: '2'
+      MaxSize: '3'
+      DesiredCapacity: '3'
+      LaunchConfigurationName: !Ref ESLaunchConfiguration
+      VPCZoneIdentifier: 
+        - !Ref minielkSubnet
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
+        PropagateAtLaunch: true
+
+
 
 
 
