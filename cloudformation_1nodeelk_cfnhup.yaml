@@ -264,6 +264,7 @@ Resources:
                 triggers=post.update
                 path=Resources.ElasticsearchEC2Instance.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LogstashEC2Instance --configsets logstash_configure --region ${AWS::Region}
+                runas=root
               mode: "000400"
               owner: "root"
               group: "root"
@@ -273,6 +274,7 @@ Resources:
                 triggers=post.update
                 path=Resources.LogstashEC2Instance.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LogstashEC2Instance --configsets logstash_configure --region ${AWS::Region}
+                runas=root
               mode: "000400"
               owner: "root"
               group: "root"
@@ -370,6 +372,7 @@ Resources:
                 triggers=post.update
                 path=Resources.ElasticsearchEC2Instance.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource KibanaEC2Instance --configsets kibana_configure --region ${AWS::Region}
+                runas=root
               mode: "000400"
               owner: "root"
               group: "root"
