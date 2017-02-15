@@ -1,0 +1,57 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Create a Security Group template",
+    "Resources": {
+        "ChildStackVPC": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "TemplateURL": "https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/VPC.json"
+            }
+        },
+        "SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "allow-ssh",
+                "VpcId": {
+                    "Fn::GetAtt": [
+                            "ChildStackVPC",
+                            "Outputs.VPC"
+                        ]
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "SecurityGroup": {
+            "Description": "Information about the SecurityGroup",
+            "Value": {
+                "Ref": "SecurityGroup"
+            }
+        },
+        "VPC": {
+            "Description": "Information about the Subnet",
+            "Value": {
+                "Fn::GetAtt": [
+                    "ChildStackVPC",
+                    "Outputs.VPC"
+                ]
+            }
+        }
+    }
+}

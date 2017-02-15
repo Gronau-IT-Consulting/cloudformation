@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create new VPC resource
+Resources:
+  newVPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: false
+      EnableDnsHostnames: false
+      InstanceTenancy: dedicated
+      Tags:
+        - Key: Name
+          Value: VPC
+Outputs:
+  VPC:
+    Value: !Sub newVPC
+    Description: Information about the VPC
