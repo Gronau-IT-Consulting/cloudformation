@@ -31,8 +31,8 @@ Resources:
         Value: Security Group for EC2
 Outputs:
   SubnetId:
-    Value: !Sub Subnet
+    Value: !Ref Subnet
     Description: Information about the Subnet
   SecurityGroupId:
-    Value: !Sub SecurityGroup
+    Value: !Ref SecurityGroup
     Description: Security Group that controls the traffic for EC2 instances

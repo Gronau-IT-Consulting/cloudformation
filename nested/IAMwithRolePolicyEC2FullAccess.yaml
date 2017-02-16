@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create a Security Group template
+Description: Create a IAM role policy and profile for EC2 Instance full access 
 Resources:
   Ec2AccessRole:
     Type: AWS::IAM::Role
@@ -27,10 +27,22 @@ Resources:
             Effect: "Allow"
             Action: "ec2:*"
             Resource: "*"
+          -
+            Effect: "Allow"
+            Action: "elasticloadbalancing:*"
+            Resource: "*"
+          -
+            Effect: "Allow"
+            Action: "cloudwatch:*"
+            Resource: "*"
+          -
+            Effect: "Allow"
+            Action: "autoscaling:*"
+            Resource: "*"
       Roles:
         -
           Ref: "Ec2AccessRole"
-  RootInstanceProfile:
+  EC2InstanceProfile:
     Type: "AWS::IAM::InstanceProfile"
     Properties:
       Path: "/"
@@ -39,5 +51,5 @@ Resources:
           Ref: "Ec2AccessRole"
 Outputs:
   Profile:
-    Value: !Sub Ec2InstanceProfile
+    Value: !Ref EC2InstanceProfile
     Description: Information about the IAM Profile

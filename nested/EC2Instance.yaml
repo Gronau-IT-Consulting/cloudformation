@@ -44,12 +44,12 @@ Resources:
   EC2ResourcesStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/EC2Resources.json
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/EC2Resources.yaml
       TimeoutInMinutes: 6
   EC2IAMStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/IAMwithRolePolicyEC2FullAccess.json
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/IAMwithRolePolicyEC2FullAccess.yaml
       TimeoutInMinutes: 5
   NewVolume:
     Type: AWS::EC2::Volume
@@ -88,11 +88,25 @@ Resources:
         GroupSet:
         - !GetAtt EC2ResourcesStack.Outputs.SecurityGroupId
         SubnetId: !GetAtt EC2ResourcesStack.Outputs.SubnetId
-
+      UserData:
+        "Fn::Base64":
+          !Sub |
+          #!/bin/bash -x
+          yum install java-1.7.0-openjdk* -y
+          curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
+          sudo python get-pip.py
+          pip -V
+          sudo pip install awscli --ignore-installed six
 Outputs:
   InstanceId:
     Value: !Ref Ec2Instance
     Description: ID of virtual server
-  WebsiteURL:
+  PublicIp:
     Description: The URL pointing the Public IP.
-    Value: !Sub http://${Ec2Instance.PublicIp}  
+    Value: !Sub http://${Ec2Instance.PublicIp}
+  VolumeId:
+    Description: VolumeId of the newly created EBS Volume
+    Value: !Ref NewVolume
+  AvailabilityZone:
+    Description: The Availability Zone in which the newly created EC2 instance was launched
+    Value: !GetAtt Ec2Instance.AvailabilityZone

@@ -4,7 +4,7 @@ Resources:
   ChildStackVPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/VPC.json
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/VPC.yaml
       TimeoutInMinutes: 50
   newSubnet:
     Type: AWS::EC2::Subnet
@@ -17,8 +17,8 @@ Resources:
         Value: VPC
 Outputs:
   VPC:
-    Value: !Sub newVPC
+    Value: !GetAtt ChildStackVPC.Outputs.VPC
     Description: Information about the VPC
   Subnet:
-    Value: !Sub newSubnet
+    Value: !Ref newSubnet
     Description: Information about the Subnet
