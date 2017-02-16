@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create a IAM role policy and profile for EC2 Instance full access 
+Description: Create a IAM role policy and profile for EC2 Instance full access
 Resources:
   Ec2AccessRole:
     Type: AWS::IAM::Role
@@ -15,7 +15,6 @@ Resources:
             Action:
               - "sts:AssumeRole"
       Path: "/"
-      RoleName: EC2_full_access_role
   RolePolicies:
     Type: "AWS::IAM::Policy"
     Properties:
