@@ -4,7 +4,7 @@ Resources:
   ChildStackVPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/VPC.yaml
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested-stack/VPC.yaml
       TimeoutInMinutes: 50
   newSubnet:
     Type: AWS::EC2::Subnet

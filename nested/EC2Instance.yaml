@@ -44,12 +44,12 @@ Resources:
   EC2ResourcesStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/EC2Resources.yaml
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested-stack/EC2Resources.yaml
       TimeoutInMinutes: 6
   EC2IAMStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested/IAMwithRolePolicyEC2FullAccess.yaml
+      TemplateURL: https://s3.eu-central-1.amazonaws.com/lavinia-dev-nested-stack/IAMwithRolePolicyEC2FullAccess.yaml
       TimeoutInMinutes: 5
   NewVolume:
     Type: AWS::EC2::Volume
