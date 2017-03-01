@@ -431,13 +431,6 @@ Resources:
               command: pip install fake-factory==0.7.2; pip install Faker==0.7.3 
         configure:
           files:
-            /root/fake.sh:
-              content: |
-                #!/bin/bash
-                while true; do cd /root/Fake-Apache-Log-Generator/; python apache-fake-log-gen.py -n 10 -o LOG; sleep 60; done
-              mode: "000750"
-              owner: root
-              group: root
             /etc/filebeat/filebeat.yml:
               content: !Sub |
                 filebeat.prospectors:
@@ -449,9 +442,7 @@ Resources:
         run:
           commands:
             run_filebeat:
-              command: service filebeat start
-            run_fake:
-              command: /root/fake.sh
+              command: /etc/init.d/filebeat start
           services:
             sysvinit:
               filebeat:
@@ -471,6 +462,8 @@ Resources:
         'Fn::Base64': !Sub |
           #!/bin/bash -ex
           /opt/aws/bin/cfn-init -s ${AWS::StackName} -r ApacheMockLogEC2Instance --configsets mock_apache --region ${AWS::Region}
+          echo '*/10 * * * * RNDNR=$(( ( RANDOM % 10 )  + 10 )); cd /root/Fake-Apache-Log-Generator/; python apache-fake-log-gen.py -n $RNDNR -o LOG' > /tmp/mycrontab.txt
+          crontab /tmp/mycrontab.txt
   WebserverSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -507,5 +500,4 @@ Outputs:
   KibanaUrl:
     Description: The URL pointing to Kibana.
     Value: !Sub http://${KibanaEC2Instance.PublicIp}:5601
-
 
